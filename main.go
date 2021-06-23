@@ -4,18 +4,20 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/synodriver/goaria2/aria2"
+	"time"
 )
 
+// todo ws:// http:// 有区别
 func main() {
 	var (
 		token string
-		url string
+		url   string
 	)
 	fmt.Println("输入url 和 token")
-	fmt.Scanf("%s %s",&url,&token)
+	fmt.Scanf("%s %s", &url, &token)
 	client := aria2.NewAria2Client(url,
 		nil, nil, &token, nil, aria2.NewHttpRequestHandler())
-	m, e := client.PurgeDownloadResult()
+	m, e := client.GetVersion()
 	if e != nil {
 		fmt.Println(e.Error())
 	}
@@ -43,6 +45,7 @@ func main() {
 		fmt.Printf("完成下载%s\n", string(b))
 		finish <- true
 	})
+	wshandler.SetTimeout(time.Second * 5)
 	client2.AddUri([]string{"https://www.baidu.com"}, nil, nil)
 	<-finish
 }

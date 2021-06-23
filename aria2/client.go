@@ -43,7 +43,9 @@ func NewAria2Client(url string,
 	client := &Aria2Client{Url: url, Id: id, Mode: mode, Token: token, Queue: queue, Handler: handler}
 	if v, ok := handler.(*WebsocketRequestHandler); ok {
 		v.SetClient(client)
-		go v.listen()
+		connected := make(chan bool)
+		go v.listen(connected)
+		<-connected
 	}
 	return client
 }

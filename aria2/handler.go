@@ -8,6 +8,7 @@ import (
 	"github.com/tidwall/gjson"
 	"github.com/valyala/fasthttp"
 	"net/http"
+	"time"
 )
 
 type IRequestHandler interface {
@@ -57,6 +58,7 @@ type WebsocketRequestHandler struct {
 	Url         string
 	Client      *Aria2Client
 	Conn        *websocket.Conn
+	Timeout     time.Duration
 	functions   map[string][]Callback
 	resultStore map[string]chan RpcResponse
 }
@@ -73,12 +75,16 @@ func (self *WebsocketRequestHandler) SetUrl(url string) {
 func (self *WebsocketRequestHandler) SetClient(c *Aria2Client) {
 	self.Client = c
 }
-func (self *WebsocketRequestHandler) listen() error {
+func (self *WebsocketRequestHandler) SetTimeout(t time.Duration) {
+	self.Timeout = t
+}
+func (self *WebsocketRequestHandler) listen(connected chan<- bool) error {
 	con, _, err := websocket.DefaultDialer.Dial(self.Url, http.Header{})
 	if err != nil {
 		return err
 	}
 	self.Conn = con
+	connected <- true
 	defer func() { self.Conn.Close() }()
 	for {
 		buffer := NewBuffer()
@@ -127,12 +133,17 @@ func (self *WebsocketRequestHandler) handleEvent(b []byte) {
 func (self *WebsocketRequestHandler) SendRequest(req RpcRequest) (interface{}, error) {
 	self.resultStore[req.Id.(string)] = make(chan RpcResponse)
 	defer delete(self.resultStore, req.Id.(string))
-
-	if err := self.Conn.WriteJSON((&req).ToMap()); err != nil { //todo panic
+	mp := (&req).ToMap()
+	if err := self.Conn.WriteJSON(mp); err != nil { //todo panic
 		return RpcResponse{}, err
 	}
-	rpcres := <-self.resultStore[req.Id.(string)]
-	return rpcres.Result, nil
+	select {
+	case rpcres := <-self.resultStore[req.Id.(string)]:
+		return rpcres.Result, nil
+	case <-time.After(self.Timeout):
+		return RpcResponse{}, errors.New("rpc call timeout")
+	}
+
 }
 
 func (self *WebsocketRequestHandler) register(function Callback, type_ string) {

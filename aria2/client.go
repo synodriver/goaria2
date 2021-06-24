@@ -2,6 +2,7 @@ package aria2
 
 import (
 	"fmt"
+	"time"
 )
 
 type IdFactory func() string
@@ -522,4 +523,52 @@ func (self *Aria2Client) ListMethods() (interface{}, error) {
 func (self *Aria2Client) ListNotifications() (interface{}, error) {
 	params := make([]interface{}, 0, 0)
 	return self.jsonrpc("listNotifications", params, "system.")
+}
+
+func (self *Aria2Client) SetTimeout(t time.Duration){
+	if v, ok := self.Handler.(*WebsocketRequestHandler); ok {
+		v.SetTimeout(t)
+	}
+}
+
+func (self *Aria2Client) OnDownloadStart(callback Callback) Callback {
+	if v, ok := self.Handler.(*WebsocketRequestHandler); ok {
+		v.OnDownloadStart(callback)
+	}
+	return callback
+}
+
+func (self *Aria2Client) OnDownloadPause(callback Callback) Callback {
+	if v, ok := self.Handler.(*WebsocketRequestHandler); ok {
+		v.OnDownloadPause(callback)
+	}
+	return callback
+}
+
+func (self *Aria2Client) OnDownloadStop(callback Callback) Callback {
+	if v, ok := self.Handler.(*WebsocketRequestHandler); ok {
+		v.OnDownloadStop(callback)
+	}
+	return callback
+}
+
+func (self *Aria2Client) OnDownloadComplete(callback Callback) Callback {
+	if v, ok := self.Handler.(*WebsocketRequestHandler); ok {
+		v.OnDownloadComplete(callback)
+	}
+	return callback
+}
+
+func (self *Aria2Client) OnDownloadError(callback Callback) Callback {
+	if v, ok := self.Handler.(*WebsocketRequestHandler); ok {
+		v.OnDownloadError(callback)
+	}
+	return callback
+}
+
+func (self *Aria2Client) OnBtDownloadComplete(callback Callback) Callback {
+	if v, ok := self.Handler.(*WebsocketRequestHandler); ok {
+		v.OnBtDownloadComplete(callback)
+	}
+	return callback
 }
